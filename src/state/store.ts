@@ -3,22 +3,35 @@ import type { RGB } from '../color/util';
 import type { Img } from '../render/emblem';
 
 export type Mode = 'folder' | 'app';
-export type EmblemMode = 'color' | 'mono' | 'engraved';
-export type PresetId = 'classic';
+export type EmblemMode = 'color' | 'mono';
+export type PresetId = 'seamless' | 'fullbleed' | 'classic';
 
-export interface Source extends Img {
+export interface Source {
   name: string;
   hasAlpha: boolean;
+  original: Img;
+  /** Background flood-filled away; null when the background wasn't uniform. */
+  cutout: Img | null;
+  palettes: { original: Palette | null; cutout: Palette | null };
 }
 
 export interface State {
   mode: Mode;
   source: Source | null;
-  palette: Palette | null;
+  removeBg: boolean;
   folder: {
     preset: PresetId;
-    /** null = derive from the image's dominant color. */
+    /** Folder color override; null = derive from the image. */
     tint: RGB | null;
+    /** The image's "body" color to merge into the folder; null = dominant color. */
+    key: RGB | null;
+    /** RGB distance keyed out around the body color (0 = no merging). */
+    mergeTolerance: number;
+    /** Outer outline trim, as a fraction of the image's longer side. */
+    trim: number;
+    /** Drop features that touch the subject's outer edge (ear tips, limbs, outline bits). */
+    interiorOnly: boolean;
+    glow: number;
     emblemScale: number;
     /** Emblem offset as a fraction of the front panel's width / height. */
     emblemX: number;
@@ -32,18 +45,37 @@ export interface State {
 export const initialState = (): State => ({
   mode: 'folder',
   source: null,
-  palette: null,
+  removeBg: true,
   folder: {
-    preset: 'classic',
+    preset: 'seamless',
     tint: null,
+    key: null,
+    mergeTolerance: 80,
+    trim: 0.012,
+    interiorOnly: true,
+    glow: 0.55,
     emblemScale: 1,
     emblemX: 0,
     emblemY: 0,
     emblemMode: 'color',
-    paperStrip: false,
+    paperStrip: true,
   },
   exportSize: 1024,
 });
+
+export const activeImage = (s: State): Img | null =>
+  s.source ? (s.removeBg && s.source.cutout) || s.source.original : null;
+
+/** True when the active image has no transparency: nothing separates subject from backdrop. */
+export const isOpaque = (s: State) =>
+  !!s.source && !s.source.hasAlpha && !(s.removeBg && s.source.cutout);
+
+export const activePalette = (s: State): Palette | null =>
+  s.source
+    ? s.removeBg && s.source.cutout
+      ? s.source.palettes.cutout
+      : s.source.palettes.original
+    : null;
 
 type Listener = (s: State) => void;
 

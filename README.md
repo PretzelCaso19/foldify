@@ -15,7 +15,9 @@ Drop, pick, or paste (⌘V) a PNG / JPG / WEBP / SVG, tune the folder, export a 
 
 ## Layout
 
-- `src/render/` — squircle + folder geometry (SVG path data), presets, compositor
+- `src/render/` — squircle + folder geometry (SVG path data), presets, compositor;
+  `merge.ts` lifts an image's features off its body color so the folder becomes the subject
+- `src/input/` — decoding + flood-fill background removal
 - `src/color/` — palette extraction (k-means), color helpers
 - `src/export/` — stepwise-halving resample, PNG
 - `src/ui/` — schema-driven controls sidebar, preview + size strip

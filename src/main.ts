@@ -2,9 +2,16 @@ import './styles.css';
 import { hexToRgb } from './color/util';
 import { copyPng, download, pngAt } from './export/png';
 import { ACCEPT_ATTR, loadImage, UnsupportedImageError } from './input/load';
-import { renderMaster, resolveTint } from './render/compositor';
+import { renderMaster, resolveKey, resolveTint } from './render/compositor';
 import { PRESET_LIST } from './render/presets';
-import { createStore, type EmblemMode, type PresetId } from './state/store';
+import {
+  activePalette,
+  createStore,
+  isOpaque,
+  type EmblemMode,
+  type PresetId,
+  type State,
+} from './state/store';
 import { renderControls, type Section } from './ui/controls';
 import { mountPreview } from './ui/preview';
 
@@ -28,11 +35,13 @@ function toast(msg: string, kind: 'info' | 'error' = 'info') {
 async function ingest(file: File | null | undefined) {
   if (!file) return;
   try {
-    const { source, palette } = await loadImage(file);
+    const source = await loadImage(file);
     store.update((s) => {
       s.source = source;
-      s.palette = palette;
+      s.removeBg = true;
+      s.folder.key = s.folder.tint = null;
       s.folder.emblemX = s.folder.emblemY = 0;
+      s.folder.emblemScale = 1;
     });
   } catch (e) {
     toast(
@@ -81,6 +90,8 @@ store.subscribe((s) => {
   $('#source-name').textContent = s.source ? s.source.name : '';
 });
 
+const mergeable = (s: State) => s.folder.preset === 'seamless' && !isOpaque(s);
+
 const filename = (size: number) => `${store.get().source?.name ?? 'folder'}-folder-${size}.png`;
 
 const sections: Section[] = [
@@ -100,6 +111,68 @@ const sections: Section[] = [
         get: (s) => s.folder.paperStrip,
         set: (s, v) => void (s.folder.paperStrip = v),
       },
+      {
+        kind: 'slider',
+        label: 'Glow',
+        min: 0,
+        max: 1,
+        step: 0.01,
+        get: (s) => s.folder.glow,
+        set: (s, v) => void (s.folder.glow = v),
+      },
+    ],
+  },
+  {
+    title: 'Image',
+    visible: (s) => !!s.source,
+    controls: [
+      {
+        kind: 'toggle',
+        label: 'Remove background',
+        visible: (s) => !!s.source?.cutout,
+        get: (s) => s.removeBg,
+        set: (s, v) => void (s.removeBg = v),
+      },
+      {
+        kind: 'swatches',
+        label: 'Body color (merges into the folder)',
+        visible: mergeable,
+        get: (s) => activePalette(s)?.swatches ?? [],
+        active: resolveKey,
+        set: (s, c) => {
+          s.folder.key = c;
+          s.folder.tint = null;
+        },
+      },
+      {
+        kind: 'slider',
+        label: 'Merge strength',
+        visible: mergeable,
+        min: 0,
+        max: 200,
+        step: 1,
+        format: (v) => (v ? `${Math.round(v / 2)}%` : 'Off'),
+        get: (s) => s.folder.mergeTolerance,
+        set: (s, v) => void (s.folder.mergeTolerance = v),
+      },
+      {
+        kind: 'slider',
+        label: 'Trim outline',
+        visible: mergeable,
+        min: 0,
+        max: 0.04,
+        step: 0.001,
+        format: (v) => (v ? `${(v * 100).toFixed(1)}%` : 'Off'),
+        get: (s) => s.folder.trim,
+        set: (s, v) => void (s.folder.trim = v),
+      },
+      {
+        kind: 'toggle',
+        label: 'Inner features only',
+        visible: (s) => mergeable(s) && s.folder.mergeTolerance > 0,
+        get: (s) => s.folder.interiorOnly,
+        set: (s, v) => void (s.folder.interiorOnly = v),
+      },
     ],
   },
   {
@@ -115,14 +188,15 @@ const sections: Section[] = [
       {
         kind: 'swatches',
         label: 'From image',
-        get: (s) => s.palette?.swatches ?? [],
+        visible: (s) => !mergeable(s),
+        get: (s) => activePalette(s)?.swatches ?? [],
         active: resolveTint,
         set: (s, c) => void (s.folder.tint = c),
       },
     ],
   },
   {
-    title: 'Emblem',
+    title: 'Placement',
     visible: (s) => !!s.source,
     controls: [
       {
@@ -139,7 +213,7 @@ const sections: Section[] = [
         kind: 'slider',
         label: 'Scale',
         min: 0.3,
-        max: 1.6,
+        max: 3,
         step: 0.01,
         get: (s) => s.folder.emblemScale,
         set: (s, v) => void (s.folder.emblemScale = v),

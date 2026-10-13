@@ -1,4 +1,5 @@
-import { extractPalette, type Palette } from '../color/palette';
+import { extractPalette } from '../color/palette';
+import { removeUniformBackground } from './bgremove';
 import { ctx2d, makeCanvas } from '../render/canvas';
 import { downscale } from '../export/resample';
 import type { Source } from '../state/store';
@@ -38,15 +39,26 @@ async function decodeRaster(file: File): Promise<HTMLCanvasElement> {
   return c;
 }
 
-function sample(c: HTMLCanvasElement, side: number): Uint8ClampedArray {
+function pixels(c: HTMLCanvasElement, side: number) {
   const k = Math.min(1, side / Math.max(c.width, c.height));
   const s = makeCanvas(c.width * k, c.height * k);
   const ctx = s.getContext('2d', { willReadFrequently: true })!;
   ctx.drawImage(c, 0, 0, s.width, s.height);
-  return ctx.getImageData(0, 0, s.width, s.height).data;
+  return { canvas: s, ctx, image: ctx.getImageData(0, 0, s.width, s.height) };
 }
 
-export async function loadImage(file: File): Promise<{ source: Source; palette: Palette | null }> {
+/** A copy of the image with its uniform background removed, or null if it has none. */
+function cutout(c: HTMLCanvasElement): HTMLCanvasElement | null {
+  const { canvas, ctx, image } = pixels(c, 1024);
+  if (!removeUniformBackground(image.data, canvas.width, canvas.height)) return null;
+  ctx.putImageData(image, 0, 0);
+  return canvas;
+}
+
+const palette = (c: HTMLCanvasElement) => extractPalette(pixels(c, 64).image.data);
+const asImg = (c: HTMLCanvasElement) => ({ src: c, width: c.width, height: c.height });
+
+export async function loadImage(file: File): Promise<Source> {
   if (!ACCEPT.includes(file.type) && !isSvg(file)) {
     throw new UnsupportedImageError(
       `${file.name || 'That file'} isn't a supported image. Use PNG, JPG, WEBP or SVG.`,
@@ -58,7 +70,7 @@ export async function loadImage(file: File): Promise<{ source: Source; palette: 
   } catch {
     throw new UnsupportedImageError(`Couldn't read ${file.name || 'that image'} — is it damaged?`);
   }
-  const alpha = sample(canvas, 256);
+  const alpha = pixels(canvas, 256).image.data;
   let hasAlpha = false;
   for (let i = 3; i < alpha.length; i += 4) {
     if (alpha[i] < 250) {
@@ -66,14 +78,12 @@ export async function loadImage(file: File): Promise<{ source: Source; palette: 
       break;
     }
   }
+  const cut = hasAlpha ? null : cutout(canvas);
   return {
-    source: {
-      src: canvas,
-      width: canvas.width,
-      height: canvas.height,
-      name: file.name.replace(/\.[^.]+$/, '') || 'image',
-      hasAlpha,
-    },
-    palette: extractPalette(sample(canvas, 64)),
+    name: file.name.replace(/\.[^.]+$/, '') || 'image',
+    hasAlpha,
+    original: asImg(canvas),
+    cutout: cut && asImg(cut),
+    palettes: { original: palette(canvas), cutout: cut && palette(cut) },
   };
 }

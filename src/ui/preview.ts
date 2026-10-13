@@ -1,7 +1,7 @@
 import { downscale } from '../export/resample';
 import { ctx2d } from '../render/canvas';
 import { frontRect } from '../render/folder';
-import { MASTER } from '../render/presets/classic';
+import { MASTER } from '../render/paint';
 import type { Store } from '../state/store';
 import { h } from './controls';
 

@@ -55,8 +55,8 @@ function cutout(c: HTMLCanvasElement): HTMLCanvasElement | null {
   return canvas;
 }
 
-const palette = (c: HTMLCanvasElement) => extractPalette(pixels(c, 64).image.data);
-const asImg = (c: HTMLCanvasElement) => ({ src: c, width: c.width, height: c.height });
+export const palette = (c: HTMLCanvasElement) => extractPalette(pixels(c, 64).image.data);
+export const asImg = (c: HTMLCanvasElement) => ({ src: c, width: c.width, height: c.height });
 
 export async function loadImage(file: File): Promise<Source> {
   if (!ACCEPT.includes(file.type) && !isSvg(file)) {
@@ -82,8 +82,8 @@ export async function loadImage(file: File): Promise<Source> {
   return {
     name: file.name.replace(/\.[^.]+$/, '') || 'image',
     hasAlpha,
-    original: asImg(canvas),
-    cutout: cut && asImg(cut),
-    palettes: { original: palette(canvas), cutout: cut && palette(cut) },
+    original: { img: asImg(canvas), palette: palette(canvas) },
+    cutout: cut && { img: asImg(cut), palette: palette(cut) },
+    ai: null,
   };
 }

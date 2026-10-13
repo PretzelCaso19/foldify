@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Turn any image into a macOS folder or app icon. Runs entirely in your browser."
+    />
     <title>Iconify</title>
   </head>
   <body>
@@ -11,25 +15,65 @@
       <main class="stage" id="stage">
         <header class="toolbar">
           <div class="brand">Iconify</div>
+          <div class="segmented compact" role="group" aria-label="Icon type">
+            <button type="button" data-mode="folder">Folder</button>
+            <button type="button" data-mode="app">App icon</button>
+          </div>
+          <div class="segmented compact" role="group" aria-label="View">
+            <button type="button" data-view="editor">Editor</button>
+            <button type="button" data-view="finder">In Finder</button>
+          </div>
           <div class="source">
             <span id="source-name"></span>
             <button type="button" class="btn small" data-pick>Choose image…</button>
           </div>
         </header>
-        <div class="canvas-wrap">
-          <canvas id="preview" aria-label="Icon preview"></canvas>
-          <div class="drop-hint">
-            <p><strong>Drop an image</strong>, paste with ⌘V, or</p>
-            <button type="button" class="btn primary" data-pick>Choose a file</button>
-            <p class="hint">PNG, JPG, WEBP or SVG · stays on your Mac</p>
+        <div id="editor-view" class="editor-view">
+          <div class="canvas-wrap">
+            <canvas id="preview" aria-label="Icon preview"></canvas>
+            <div class="drop-hint">
+              <p><strong>Drop an image</strong>, paste with ⌘V, or</p>
+              <button type="button" class="btn primary" data-pick>Choose a file</button>
+              <p class="hint">PNG, JPG, WEBP or SVG · never leaves your computer</p>
+            </div>
           </div>
+          <div class="strip" id="strip" aria-label="Small size previews"></div>
         </div>
-        <div class="strip" id="strip" aria-label="Small size previews"></div>
+        <div id="finder-view" class="finder-view" hidden></div>
       </main>
       <aside class="sidebar" id="controls" aria-label="Controls"></aside>
     </div>
     <input type="file" id="file" hidden />
     <div class="toast" id="toast" role="status" hidden></div>
+
+    <dialog id="howto" aria-labelledby="howto-title">
+      <h2 id="howto-title">Apply your icon</h2>
+      <ol>
+        <li>
+          <button type="button" class="btn small primary" id="howto-copy">Copy PNG</button>
+          to put the icon on your clipboard.
+        </li>
+        <li>In Finder, select the folder or app and choose <b>File ▸ Get Info</b> (⌘I).</li>
+        <li>Click the small icon at the top-left of the Info window so it's highlighted.</li>
+        <li>Press <b>⌘V</b>. To undo later, select that icon again and press Delete.</li>
+      </ol>
+      <p class="hint">
+        Apps in /Applications may ask for your password. Some system apps can't be changed.
+      </p>
+      <h3>Or from Terminal</h3>
+      <p class="hint">
+        With
+        <a href="https://github.com/mklement0/fileicon" target="_blank" rel="noopener">fileicon</a>
+        (<code>brew install fileicon</code>) and the downloaded .icns:
+      </p>
+      <div class="cli">
+        <code id="howto-cli"></code>
+        <button type="button" class="btn small" id="howto-cli-copy">Copy</button>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn" id="howto-close">Done</button>
+      </div>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

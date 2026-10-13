@@ -2,22 +2,20 @@ import type { Palette } from '../../color/palette';
 import type { RGB } from '../../color/util';
 import type { EmblemMode, PresetId } from '../../state/store';
 import type { Img } from '../emblem';
+import type { MergeOptions } from '../merge';
 
 export interface PresetOptions {
-  /** Final folder color, already resolved from the override or the image. */
+  /** Main color, already resolved from the override or the image (neon: the accent). */
   tint: RGB;
-  /** The image's body color, resolved (merged into the folder by Seamless). */
-  key: RGB;
-  mergeTolerance: number;
-  trim: number;
-  interiorOnly: boolean;
+  merge: MergeOptions;
   glow: number;
-  emblemScale: number;
-  emblemX: number;
-  emblemY: number;
+  glowColor: RGB | null;
+  scale: number;
+  x: number;
+  y: number;
   emblemMode: EmblemMode;
   paperStrip: boolean;
-  /** The image has no transparency (e.g. a photo); there's no subject to merge. */
+  /** The image has no transparency (e.g. a photo); there's no subject to lift out. */
   opaque: boolean;
 }
 
@@ -25,5 +23,7 @@ export interface PresetOptions {
 export interface Preset {
   id: PresetId;
   label: string;
+  /** Color used for the folder when the user hasn't picked one. */
+  autoTint: 'body' | 'folder' | 'accent';
   render(image: Img | null, palette: Palette | null, opts: PresetOptions): HTMLCanvasElement;
 }

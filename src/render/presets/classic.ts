@@ -1,26 +1,20 @@
-import { lighten } from '../../color/util';
-import { ctx2d, makeCanvas, path } from '../canvas';
-import { drawColorEmblem, drawMonoEmblem, emblemRect } from '../emblem';
-import { frontPanelPath, frontRect } from '../folder';
-import { drawFolderBase, drawFrontLighting, MASTER } from '../paint';
+import { drawEmblem } from '../emblem';
+import { drawFolderBase, drawFrontLighting } from '../paint';
+import { emblemArt, inFront, master, place } from './shared';
 import type { Preset } from './types';
 
-/** The image as a sticker-like emblem sitting on top of a tinted folder. */
+/** Big Sur-style folder tinted to the image, image centred on the front as an emblem. */
 export const classic: Preset = {
   id: 'classic',
-  label: 'Emblem',
-  render(image, _palette, opts) {
-    const c = makeCanvas(MASTER);
-    const ctx = ctx2d(c);
-    drawFolderBase(ctx, opts.tint, opts);
-    drawFrontLighting(ctx, opts.tint);
+  label: 'Classic tinted',
+  autoTint: 'folder',
+  render(image, _palette, o) {
+    const { c, ctx } = master();
+    drawFolderBase(ctx, o.tint, o);
+    drawFrontLighting(ctx, o.tint);
     if (image) {
-      const r = emblemRect(image, frontRect(), 0.56, opts.emblemScale, opts.emblemX, opts.emblemY);
-      ctx.save();
-      ctx.clip(path(frontPanelPath()));
-      if (opts.emblemMode === 'color') drawColorEmblem(ctx, image, r);
-      else drawMonoEmblem(ctx, image, r, lighten(opts.tint, -0.22));
-      ctx.restore();
+      const art = emblemArt(image, o);
+      inFront(ctx, () => drawEmblem(ctx, art, place(art, 0.56, o), o.emblemMode, o.tint));
     }
     return c;
   },

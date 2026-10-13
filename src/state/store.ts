@@ -1,43 +1,81 @@
 import type { Palette } from '../color/palette';
 import type { RGB } from '../color/util';
-import type { Img } from '../render/emblem';
+import type { EmblemMode, Img } from '../render/emblem';
 
+export type { EmblemMode };
 export type Mode = 'folder' | 'app';
-export type EmblemMode = 'color' | 'mono';
-export type PresetId = 'seamless' | 'fullbleed' | 'classic';
+export type PresetId =
+  | 'seamless'
+  | 'classic'
+  | 'engraved'
+  | 'gradient'
+  | 'fullbleed'
+  | 'sticker'
+  | 'neon'
+  | 'flat'
+  | 'iconpack';
+export type AppFill = 'merge' | 'glyph' | 'bleed';
+export type AppBackground = 'solid' | 'gradient' | 'blur';
+
+export interface Variant {
+  img: Img;
+  palette: Palette | null;
+}
 
 export interface Source {
   name: string;
   hasAlpha: boolean;
-  original: Img;
-  /** Background flood-filled away; null when the background wasn't uniform. */
-  cutout: Img | null;
-  palettes: { original: Palette | null; cutout: Palette | null };
+  original: Variant;
+  /** Uniform background flood-filled away; null when the background wasn't uniform. */
+  cutout: Variant | null;
+  /** ML background removal, filled in on request. */
+  ai: Variant | null;
+}
+
+export type BgMode = 'off' | 'fast' | 'ai';
+
+/** Where the artwork sits; folder and app icon keep their own. */
+export interface Placement {
+  scale: number;
+  /** Offset as a fraction of the target area's width / height. */
+  x: number;
+  y: number;
 }
 
 export interface State {
   mode: Mode;
   source: Source | null;
-  removeBg: boolean;
-  folder: {
+  bg: BgMode;
+  aiStatus: 'idle' | 'loading' | 'error';
+  /** 0…1 model download progress while aiStatus is 'loading'. */
+  aiProgress: number;
+  /** Shared by both modes: how the image's body color merges. */
+  merge: {
+    /** The image's body color; null = dominant color. */
+    key: RGB | null;
+    tolerance: number;
+    trim: number;
+    interiorOnly: boolean;
+  };
+  emblemMode: EmblemMode;
+  folder: Placement & {
     preset: PresetId;
     /** Folder color override; null = derive from the image. */
     tint: RGB | null;
-    /** The image's "body" color to merge into the folder; null = dominant color. */
-    key: RGB | null;
-    /** RGB distance keyed out around the body color (0 = no merging). */
-    mergeTolerance: number;
-    /** Outer outline trim, as a fraction of the image's longer side. */
-    trim: number;
-    /** Drop features that touch the subject's outer edge (ear tips, limbs, outline bits). */
-    interiorOnly: boolean;
     glow: number;
-    emblemScale: number;
-    /** Emblem offset as a fraction of the front panel's width / height. */
-    emblemX: number;
-    emblemY: number;
-    emblemMode: EmblemMode;
+    glowColor: RGB | null;
     paperStrip: boolean;
+  };
+  app: Placement & {
+    fill: AppFill;
+    background: AppBackground;
+    /** Background color overrides; null = derive from the image. */
+    bg1: RGB | null;
+    bg2: RGB | null;
+    rotation: number;
+    padding: number;
+    gloss: boolean;
+    shadow: number;
   };
   exportSize: number;
 }
@@ -45,37 +83,53 @@ export interface State {
 export const initialState = (): State => ({
   mode: 'folder',
   source: null,
-  removeBg: true,
+  bg: 'fast',
+  aiStatus: 'idle',
+  aiProgress: 0,
+  merge: { key: null, tolerance: 80, trim: 0.012, interiorOnly: true },
+  emblemMode: 'color',
   folder: {
     preset: 'seamless',
     tint: null,
-    key: null,
-    mergeTolerance: 80,
-    trim: 0.012,
-    interiorOnly: true,
     glow: 0.55,
-    emblemScale: 1,
-    emblemX: 0,
-    emblemY: 0,
-    emblemMode: 'color',
+    glowColor: null,
     paperStrip: true,
+    scale: 1,
+    x: 0,
+    y: 0,
+  },
+  app: {
+    fill: 'merge',
+    background: 'gradient',
+    bg1: null,
+    bg2: null,
+    rotation: 0,
+    padding: 0.14,
+    gloss: false,
+    shadow: 0.6,
+    scale: 1,
+    x: 0,
+    y: 0,
   },
   exportSize: 1024,
 });
 
-export const activeImage = (s: State): Img | null =>
-  s.source ? (s.removeBg && s.source.cutout) || s.source.original : null;
+function variant(s: State): Variant | null {
+  const src = s.source;
+  if (!src) return null;
+  if (s.bg === 'ai' && src.ai) return src.ai;
+  if (s.bg !== 'off' && src.cutout) return src.cutout;
+  return src.original;
+}
+
+export const activeImage = (s: State): Img | null => variant(s)?.img ?? null;
+export const activePalette = (s: State): Palette | null => variant(s)?.palette ?? null;
 
 /** True when the active image has no transparency: nothing separates subject from backdrop. */
 export const isOpaque = (s: State) =>
-  !!s.source && !s.source.hasAlpha && !(s.removeBg && s.source.cutout);
+  !!s.source && variant(s) === s.source.original && !s.source.hasAlpha;
 
-export const activePalette = (s: State): Palette | null =>
-  s.source
-    ? s.removeBg && s.source.cutout
-      ? s.source.palettes.cutout
-      : s.source.palettes.original
-    : null;
+export const placement = (s: State): Placement => (s.mode === 'app' ? s.app : s.folder);
 
 type Listener = (s: State) => void;
 

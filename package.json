@@ -25,6 +25,8 @@
     "vitest": "^5.0.4"
   },
   "dependencies": {
-    "fflate": "^0.8.3"
+    "@imgly/background-removal": "^1.7.0",
+    "fflate": "^0.8.3",
+    "onnxruntime-web": "^1.21.0"
   }
 }

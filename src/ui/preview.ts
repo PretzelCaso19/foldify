@@ -1,8 +1,9 @@
 import { downscale } from '../export/resample';
+import { APP_BODY } from '../render/appicon';
 import { ctx2d } from '../render/canvas';
 import { frontRect } from '../render/folder';
 import { MASTER } from '../render/paint';
-import type { Store } from '../state/store';
+import { placement, type Store } from '../state/store';
 import { h } from './controls';
 
 export const STRIP_SIZES = [512, 128, 64, 32, 16];
@@ -38,21 +39,18 @@ export function mountPreview(stage: HTMLCanvasElement, strip: HTMLElement, store
     if (!last) return;
     const wrap = stage.parentElement!;
     const pad = 48;
-    paint(
-      stage,
-      last,
-      Math.max(160, Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight) - pad)),
-    );
+    const side = Math.min(wrap.clientWidth, wrap.clientHeight) - pad;
+    paint(stage, last, Math.max(160, Math.floor(side)));
     // 512 won't fit the strip at 1:1, so it's scaled to the strip height; the rest are real size.
     for (const t of tiles) paint(t.c, last, Math.min(t.size, STRIP_MAX));
   };
 
-  // Drag the emblem directly on the preview.
+  // Drag the artwork directly on the preview.
   let drag: { x: number; y: number; ex: number; ey: number } | null = null;
   stage.addEventListener('pointerdown', (e) => {
     if (!store.get().source) return;
-    const f = store.get().folder;
-    drag = { x: e.clientX, y: e.clientY, ex: f.emblemX, ey: f.emblemY };
+    const p = placement(store.get());
+    drag = { x: e.clientX, y: e.clientY, ex: p.x, ey: p.y };
     stage.setPointerCapture(e.pointerId);
     stage.classList.add('dragging');
   });
@@ -60,11 +58,12 @@ export function mountPreview(stage: HTMLCanvasElement, strip: HTMLElement, store
     if (!drag) return;
     const d = drag;
     const k = MASTER / stage.getBoundingClientRect().width;
-    const fr = frontRect();
-    const clampOff = (v: number) => Math.max(-0.5, Math.min(0.5, v));
+    const area = store.get().mode === 'app' ? APP_BODY : frontRect();
+    const clampOff = (v: number) => Math.max(-0.6, Math.min(0.6, v));
     store.update((s) => {
-      s.folder.emblemX = clampOff(d.ex + ((e.clientX - d.x) * k) / fr.w);
-      s.folder.emblemY = clampOff(d.ey + ((e.clientY - d.y) * k) / fr.h);
+      const p = placement(s);
+      p.x = clampOff(d.ex + ((e.clientX - d.x) * k) / area.w);
+      p.y = clampOff(d.ey + ((e.clientY - d.y) * k) / area.h);
     });
   });
   const end = () => {

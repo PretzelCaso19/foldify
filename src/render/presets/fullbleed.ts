@@ -14,15 +14,15 @@ export function renderFullBleed(image: Img | null, opts: PresetOptions): HTMLCan
   drawFolderBase(ctx, back, opts);
   if (image) {
     const f = frontRect();
-    const k = Math.max(f.w / image.width, f.h / image.height) * opts.emblemScale;
+    const k = Math.max(f.w / image.width, f.h / image.height) * opts.scale;
     const w = image.width * k;
     const h = image.height * k;
     ctx.save();
     ctx.clip(path(frontPanelPath()));
     ctx.drawImage(
       image.src,
-      f.x + (f.w - w) / 2 + opts.emblemX * f.w,
-      f.y + (f.h - h) / 2 + opts.emblemY * f.h,
+      f.x + (f.w - w) / 2 + opts.x * f.w,
+      f.y + (f.h - h) / 2 + opts.y * f.h,
       w,
       h,
     );
@@ -35,5 +35,6 @@ export function renderFullBleed(image: Img | null, opts: PresetOptions): HTMLCan
 export const fullBleed: Preset = {
   id: 'fullbleed',
   label: 'Full-bleed',
+  autoTint: 'body',
   render: (image, _palette, opts) => renderFullBleed(image, opts),
 };

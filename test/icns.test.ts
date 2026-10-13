@@ -131,7 +131,7 @@ try {
 
 describe.runIf(hasIconutil)('against iconutil', () => {
   it('iconutil reads our .icns back into a complete, correctly sized iconset', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'iconify-'));
+    const dir = mkdtempSync(join(tmpdir(), 'foldify-'));
     try {
       const pngs = new Map([32, 64, 128, 256, 512, 1024].map((s) => [s, png(s)]));
       const ours = buildIcns(ICNS_TYPES.map((t) => ({ type: t.type, data: pngs.get(t.size)! })));

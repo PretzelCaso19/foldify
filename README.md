@@ -1,4 +1,4 @@
-# Iconify
+# Foldify
 
 Turn any image into a macOS **folder icon** or **app icon**. Drop in a picture and the
 folder _becomes_ it: the folder takes the image's main color, and only the features (eyes,

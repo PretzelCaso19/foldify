@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Iconify</title>
+  </head>
+  <body>
+    <div class="app">
+      <main class="stage" id="stage">
+        <header class="toolbar">
+          <div class="brand">Iconify</div>
+          <div class="source">
+            <span id="source-name"></span>
+            <button type="button" class="btn small" data-pick>Choose image…</button>
+          </div>
+        </header>
+        <div class="canvas-wrap">
+          <canvas id="preview" aria-label="Icon preview"></canvas>
+          <div class="drop-hint">
+            <p><strong>Drop an image</strong>, paste with ⌘V, or</p>
+            <button type="button" class="btn primary" data-pick>Choose a file</button>
+            <p class="hint">PNG, JPG, WEBP or SVG · stays on your Mac</p>
+          </div>
+        </div>
+        <div class="strip" id="strip" aria-label="Small size previews"></div>
+      </main>
+      <aside class="sidebar" id="controls" aria-label="Controls"></aside>
+    </div>
+    <input type="file" id="file" hidden />
+    <div class="toast" id="toast" role="status" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

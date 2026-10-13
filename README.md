@@ -1,5 +1,7 @@
 # Foldify
 
+**Live: https://foldify-alpha.vercel.app**
+
 Turn any image into a macOS **folder icon** or **app icon**. Drop in a picture and the
 folder _becomes_ it: the folder takes the image's main color, and only the features (eyes,
 mouth, markings) are painted onto it under the folder's own lighting. Everything runs in
